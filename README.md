@@ -2,9 +2,9 @@
 
 재고 시스템으로 알아보는 동시성 이슈 해결 방법
 
-- Spring Web
-- Spring Data JPA
-- MySQL (run as docker container)
+- Spring Web 3.0.2
+- Spring Data JPA 3.0.2
+- MySQL 8.0.32 (run as docker container)
 
 ## Synchronized 문제점 (Application Level)
 
@@ -38,3 +38,10 @@
     ```
 
 - Named Lock
+  - 이름을 가진 metadata lock으로 주로 분산 Lock을 구현하는 데 사용된다.
+  - Pessimistic Lock은 column, record 단위의 Lock인 반면 Named Lock은 metadata 단위의 lock이다.
+  - Pessimistic Lock에 비해 Timeout을 손쉽게 구현할 수 있다.
+  - 데이터 삽입 시 정합성 맞추는 데 사용할 수 있다.
+  - 트랜잭션 종료 시 락이 자동으로 해제되지 않아 별도 명령어로 **직접 해제**하거나 **선점시간이 끝나야 해제**되는 것에 주의해야 한다.
+  - 여기서는 편의를 위해 jpa nativeQuery를 사용하지만 실무에서는 jdbc를 사용하는 등 datasource 를 분리하여 사용하는 것이 추천된다.
+  - 만약 같은 datasource 사용 시 connection pool이 부족해지는 현상으로 인해 다른 서비스에 영향을 끼칠 수 있다.
