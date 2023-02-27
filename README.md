@@ -6,6 +6,19 @@
 - Spring Data JPA 3.0.2
 - MySQL 8.0.32 (run as docker container)
 
+### MySQL (docker) 환경 설정 및 실행
+
+```sh
+docker pull mysql
+docker run -d -p 13306:3306 -e MYSQL_ROOT_PASSWORD=1234 --name mysql mysql
+docker exec -it mysql bash
+
+mysql -u root -p
+
+mysql> create database stock_example;
+mysql> use stock_example;
+```
+
 ## Synchronized 문제점 (Application Level)
 
 서버가 2대 이상일 때 동일한 문제 발생
@@ -49,7 +62,13 @@ from
 update [0];
 actual row count: 0;
 expected: 1;
-statement executed: update stock set product_id=?, quantity=?, version=? where id=? and version=?;
+statement executed:
+update stock
+set product_id=?,
+    quantity=?,
+    version=?
+where id = ?
+  and version = ?;
 nested exception is org.hibernate.StaleStateException
   ```
 
@@ -78,4 +97,31 @@ set product_id=?,
 where id = ?
   and version = ? Hibernate:
 select release_lock(?)
+```
+
+## Redis Library 를 활용한 Distributed Lock 구현
+
+### Lettuce 활용하는 방법
+
+`SETNX`(set if not exist, 기존 키가 없는 경우 값을 입력하는 방식) 명령어를 활용하여 분산락 구현할 수 있다.
+SETNX를 활용하는 방식은 spin lock 방식으로 retry 로직을 개발자가 직접 작성해야 한다.
+Lettuce를 활용하여 Lock을 구현하는 방법은 MySQL의 NamedLock과 거의 비슷하지만, Redis를 사용하는 점과 세션관리에 신경쓰지 않아도 되는 점이
+NamedLock과 다르다. Lettuce를 활용한 방법은 구현이 간단한 장점이 있지만, spin lock 방식으로 redis에 부하를 줄 수 있기 때문에 Lock 획득 시도
+사이에 텀을 줘서 부하를 줄여야 한다.
+
+> spin lock 이란 Lock을 획득하려는 스레드가 Lock을 사용할 수 있는지 지속적으로 확인하여 Lock을 획득하는 방식이다.
+
+### Redis (docker) 환경설정 및 redis-cli 실행
+
+```sh
+docker pull redis
+docker run --name myredis -d -p 6379:6379 redis
+docker exec -it myredis redis-cli
+
+127.0.0.1:6379> SETNX 1 lock
+(integer) 1
+127.0.0.1:6379> SETNX 1 lock
+(integer) 0
+127.0.0.1:6379> del 1
+(integer) 1
 ```
