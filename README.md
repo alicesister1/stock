@@ -175,3 +175,32 @@ Reading messages... (press Ctrl-C to quit)
 2) "ch1"
 3) "hi"
 ```
+
+## 결론
+
+기존 방식으로 처리가 가능하다면 그대로 유지하되, 트래픽이 점차 증가해 Database lock으로는 더이상 처리가 불가능할 정도라면 비용을 감수하고서라도 Redis를 사용할
+필요가 있다.
+
+## 실무에서 Lettuce vs Redisson
+
+Lettuce
+
+- 재시도가 필요하지 않은 경우 lettuce를 활용하여 lock을 구현한다.
+
+Redisson
+
+- 재시도가 필요한 경우 redisson 활용하는 방식을 혼용한다.
+
+### 실무에서 MySQL vs Redis
+
+MySQL
+
+- 이미 MySQL을 사용하고 있다면 별도의 비용없이 사용 가능하다
+- 어느정도 트래픽까지는 문제없이 활용이 가능하다
+- Redis에 비해 성능이 좋지 않다.
+
+Redis
+
+- 활용중인 Redis가 없다면 별도의 구축 비용과 인프라 관리 비용이 추가로 발생한다.
+- MySQL에 비해 성능이 좋아 더 많은 요청을 처리할 수 있다.
+
