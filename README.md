@@ -113,6 +113,8 @@ NamedLock과 다르다. Lettuce를 활용한 방법은 구현이 간단한 장�
 
 ### Redis (docker) 환경설정 및 redis-cli 실행
 
+build.gradle 파일에 `implementation 'org.springframework.boot:spring-boot-starter-data-redis'` 의존성 추가
+
 ```sh
 docker pull redis
 docker run --name myredis -d -p 6379:6379 redis
@@ -124,4 +126,52 @@ docker exec -it myredis redis-cli
 (integer) 0
 127.0.0.1:6379> del 1
 (integer) 1
+```
+
+### Redisson 활용하는 방법
+
+pub-sub 방식으로 Lock 구현을 제공한다. 보통은 retry 로직을 직접 구현할 필요가 없다
+Lettuce의 spin lock 방식과 다르게 매번 시도할 필요 없이 채널 subscribe 후 메세지를 받을 때 Lock 획득을 시도하므로 Redis의 부하를 줄일 수 있다.
+하지만 Lettuce에 비해 구현이 조금은 복잡하고 별도의 라이브러리를 사용해야 한다.
+Redisson은 Lock 관련 기능을 라이브러리에서 제공하므로 별도의 repository를 생성할 필요가 없다.
+
+> pub-sub 방식이란 채널을 하나 만들고 Lock을 점유중인 스레드가 해제를 할 때 채널에 해제 메세지를 보내고, Lock을 획득하려고 대기중인 스레드는 채널을 구독하고
+> 있다가 채널해제 메세지가 왔을 때 Lock을 획득하는 방식이다.
+
+터미널 2개로 pub-sub 방식을 실습
+
+```sh
+# 터미널 A
+docker exec -it myredis redis-cli
+
+# subscribe (구독)
+127.0.0.1:6379> SUBSCRIBE ch1
+Reading messages... (press Ctrl-C to quit)
+1) "subscribe"
+2) "ch1"
+3) (integer) 1
+```
+
+```sh
+# 터미널 B
+docker exec -it myredis redis-cli
+
+# publish (발행)
+127.0.0.1:6379> PUBLISH ch1 hi
+(integer) 1
+```
+
+```sh
+# 터미널 A
+docker exec -it myredis redis-cli
+
+# subscribe (구독)
+127.0.0.1:6379> SUBSCRIBE ch1
+Reading messages... (press Ctrl-C to quit)
+1) "subscribe"
+2) "ch1"
+3) (integer) 1
+1) "message"
+2) "ch1"
+3) "hi"
 ```
